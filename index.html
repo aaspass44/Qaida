@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>قاعدہ لرننگ - فکسڈ یو آئی</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@700&display=swap');
+        :root { --brand: linear-gradient(145deg, #FFA500, #FF8C00); --bg: #FFFDF5; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
+        
+        body { 
+            font-family: 'Noto Nastaliq Urdu', serif; 
+            background-color: var(--bg); 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            align-items: center;
+        }
+
+        /* Top Nav */
+        .top-nav { 
+            width: 100%; background: white; padding: 15px 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); z-index: 100;
+        }
+        .nav-content { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .coin-target { 
+            background: #FFF9C4; padding: 8px 18px; border-radius: 25px; 
+            color: #FF8C00; font-weight: bold; border: 2px solid #FFD54F;
+            display: flex; align-items: center; gap: 8px; font-size: 20px;
+            box-shadow: inset 0 -3px 0 #FFD54F;
+        }
+
+        .bar-bg { width: 100%; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; border: 2px solid #f0f0f0; }
+        .bar-fill { 
+            width: 0%; height: 100%; background: var(--brand); 
+            transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            border-radius: 10px;
+        }
+
+        /* Stage Area */
+        .stage { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        
+        /* Clear Letter View - Precisely Centered & Animated */
+        .letter-card {
+            width: 230px; height: 230px; background: white; border-radius: 45px;
+            display: grid; place-items: center;
+            font-size: 110px; color: #E67E22; border: 10px solid #FF8C00;
+            box-shadow: 0 15px 0 #CC7000; cursor: pointer; transition: 0.2s;
+            z-index: 5; line-height: 1; padding-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .letter-card:active { transform: translateY(8px) scale(0.95); box-shadow: 0 7px 0 #CC7000; }
+
+        /* Test Grid - Centered & Balanced */
+        .grid { 
+            display: grid; grid-template-columns: repeat(2, 1fr); 
+            gap: 20px; width: 100%; max-width: 360px; 
+            justify-content: center; align-content: center;
+            display: none; padding: 10px;
+        }
+        .card { 
+            aspect-ratio: 1/1; background: white; border-radius: 30px; 
+            display: grid; place-items: center; 
+            font-size: 75px; color: #333; border: 4px solid #eee; box-shadow: 0 8px 0 #ddd;
+            cursor: pointer; transition: 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            width: 100%; padding-bottom: 5px;
+        }
+        .card:active { transform: scale(0.9); }
+        
+        .shake { animation: shake 0.4s; }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Footer Button - Professional Gradient */
+        .footer { padding: 40px; width: 100%; display: flex; justify-content: center; }
+        .red-btn { 
+            width: 90px; height: 90px; background: linear-gradient(145deg, #FF5252, #D32F2F); 
+            color: white; border: none; border-radius: 50%; font-size: 45px; 
+            box-shadow: 0 10px 0 #B71C1C; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: 0.1s;
+        }
+        .red-btn:active { transform: translateY(6px); box-shadow: 0 4px 0 #B71C1C; }
+
+        /* Start Overlay */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .start-modal {
+            background: white; padding: 30px; border-radius: 30px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .ok-btn {
+            background: #FF8C00; color: white; border: none; padding: 15px 50px;
+            font-size: 24px; border-radius: 50px; cursor: pointer; font-family: 'Noto Nastaliq Urdu', serif;
+            box-shadow: 0 5px 0 #CC7000;
+        }
+
+        /* Coin Flight Animation */
+        .coin-fly {
+            position: fixed; font-size: 35px; z-index: 1000; pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <div class="start-modal">
+            <h2 style="margin-bottom: 20px; color: #333;">تیار ہیں؟</h2>
+            <button class="ok-btn" onclick="initApp()">اوکے (OK)</button>
+        </div>
+    </div>
+
+    <div class="top-nav">
+        <div class="nav-content">
+            <div class="coin-target" id="coin-ui">🪙 <span id="coin-count">0</span></div>
+            <div style="color: #5D4037; font-weight: bold; font-size: 22px;" id="mode-text">سیکھیں</div>
+        </div>
+        <div class="bar-bg"><div class="bar-fill" id="pb"></div></div>
+    </div>
+
+    <div class="stage">
+        <div id="learn-view"><div class="letter-card" id="main-letter" onclick="playVoice()">ا</div></div>
+        <div class="grid" id="test-view"></div>
+    </div>
+
+    <div class="footer" id="bottom-bar">
+        <button class="red-btn" onclick="startQuiz()">➜</button>
+    </div>
+
+<script>
+    const letters = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'و', 'ه', 'ء', 'ي'];
+    // آپ کی تصاویر کے مطابق آڈیو فائلز کے نام
+    const letterNames = ['alif', 'ba', 'taa', 'tha', 'jeem', 'haa', 'khaa', 'dal', 'dhal', 'raa', 'jaa', 'seen', 'sheen', 'saad', 'dhaad', 'toa', 'dhaa', 'ain', 'ghain', 'faa', 'qaaf', 'kaaf', 'laam', 'meem', 'noon', 'waw', 'ha', 'hamza', 'yaa'];
+    
+    let idx = 0;
+    let score = 0; 
+    let audio = new Audio();
+
+    function initApp() {
+        document.getElementById('start-overlay').style.display = 'none';
+        playVoice();
+    }
+
+    function playVoice() {
+        audio.pause();
+        audio.currentTime = 0;
+
+        let fileNum = (idx + 1).toString().padStart(3, '0');
+        let name = letterNames[idx];
+        
+        // تصاویر کے مطابق پاتھ سیٹ کرنا
+        if (name === 'ba') {
+            audio.src = "ba.mp3"; // تصویر میں 'ba.mp3' الگ ہے
+        } else {
+            audio.src = fileNum + "-" + name + ".mp3";
+        }
+        
+        audio.play().catch(e => {
+            console.log("آڈیو لوڈ نہیں ہو سکی: " + audio.src);
+        });
+    }
+
+    function coinEffect(x, y) {
+        const target = document.getElementById('coin-ui').getBoundingClientRect();
+        const coin = document.createElement('div');
+        coin.className = 'coin-fly';
+        coin.innerHTML = '🪙';
+        coin.style.left = x + 'px';
+        coin.style.top = y + 'px';
+        document.body.appendChild(coin);
+
+        new Audio('https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3').play();
+
+        setTimeout(() => {
+            coin.style.left = (target.left + 20) + 'px';
+            coin.style.top = (target.top + 15) + 'px';
+            coin.style.opacity = '0';
+            coin.style.transform = 'scale(0.4)';
+        }, 50);
+
+        setTimeout(() => {
+            coin.remove();
+            score += 20;
+            document.getElementById('coin-count').innerText = score;
+        }, 850);
+    }
+
+    function startQuiz() {
+        document.getElementById('learn-view').style.display = 'none';
+        document.getElementById('bottom-bar').style.display = 'none';
+        document.getElementById('test-view').style.display = 'grid';
+        document.getElementById('mode-text').innerText = "تلاش کریں";
+        
+        loadQuiz();
+        playVoice();
+    }
+
+    function loadQuiz() {
+        const grid = document.getElementById('test-view');
+        grid.innerHTML = "";
+        let options = [letters[idx]];
+        while(options.length < 4) {
+            let r = letters[Math.floor(Math.random() * letters.length)];
+            if(!options.includes(r)) options.push(r);
+        }
+        options.sort(() => Math.random() - 0.5);
+
+        options.forEach(opt => {
+            let card = document.createElement('div');
+            card.className = 'card';
+            card.innerText = opt;
+            card.onclick = (e) => {
+                if(opt === letters[idx]) {
+                    card.style.background = "#4CAF50";
+                    card.style.color = "white";
+                    card.style.transform = "scale(1.1)";
+                    coinEffect(e.clientX, e.clientY);
+                    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+                    setTimeout(nextStep, 1300);
+                } else {
+                    card.classList.add('shake');
+                    card.style.borderColor = "#FF5252";
+                    new Audio('https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3').play();
+                    setTimeout(() => {
+                        card.classList.remove('shake');
+                        card.style.borderColor = "#eee";
+                    }, 500);
+                }
+            };
+            grid.appendChild(card);
+        });
+    }
+
+    function nextStep() {
+        idx++;
+        if(idx >= letters.length) idx = 0;
+        
+        updateProgress();
+        
+        document.getElementById('main-letter').innerText = letters[idx];
+        document.getElementById('learn-view').style.display = 'block';
+        document.getElementById('bottom-bar').style.display = 'flex';
+        document.getElementById('test-view').style.display = 'none';
+        document.getElementById('mode-text').innerText = "سیکھیں";
+        
+        playVoice();
+    }
+
+    function updateProgress() {
+        let progress = (idx / letters.length) * 100;
+        document.getElementById('pb').style.width = progress + "%";
+    }
+
+    window.onload = () => {
+        updateProgress();
+        document.getElementById('coin-count').innerText = score;
+    };
+</script>
+</body>
+</html>
