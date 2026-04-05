@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@700&display=swap');
-        :root { --brand: linear-gradient(145deg, #FFA500, #FF8C00); --bg: #FFFDF5; }
+        :root { --brand: linear-gradient(145deg, #FFA500, #FF8C00); --bg: #FFFDF5; --danger: #FF5252; --success: #4CAF50; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0; }
         
         body { 
@@ -33,17 +33,30 @@
             box-shadow: inset 0 -3px 0 #FFD54F;
         }
 
-        .bar-bg { width: 100%; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; border: 2px solid #f0f0f0; }
+        .bar-bg { width: 100%; height: 14px; background: #eee; border-radius: 10px; overflow: hidden; border: 2px solid #f0f0f0; position: relative; }
         .bar-fill { 
             width: 0%; height: 100%; background: var(--brand); 
             transition: 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             border-radius: 10px;
         }
+        
+        .made-with {
+            text-align: center; font-size: 10px; color: #ccc; 
+            margin-top: 4px; font-family: sans-serif; letter-spacing: 1px;
+        }
+
+        /* Timer UI */
+        #timer-container {
+            width: 100%; max-width: 360px; margin-top: 10px; display: none;
+        }
+        .timer-bar { height: 8px; background: #eee; border-radius: 5px; overflow: hidden; }
+        #timer-fill { width: 100%; height: 100%; background: var(--danger); transition: 0.1s linear; }
+        #timer-text { text-align: center; font-size: 18px; color: var(--danger); font-weight: bold; margin-bottom: 5px; }
 
         /* Stage Area */
-        .stage { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .stage { flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
         
-        /* Clear Letter View - Precisely Centered & Animated */
+        /* Clear Letter View */
         .letter-card {
             width: 230px; height: 230px; background: white; border-radius: 45px;
             display: grid; place-items: center;
@@ -58,7 +71,7 @@
         }
         .letter-card:active { transform: translateY(8px) scale(0.95); box-shadow: 0 7px 0 #CC7000; }
 
-        /* Test Grid - Centered & Balanced */
+        /* Test Grid */
         .grid { 
             display: grid; grid-template-columns: repeat(2, 1fr); 
             gap: 20px; width: 100%; max-width: 360px; 
@@ -81,7 +94,7 @@
             75% { transform: translateX(10px); }
         }
 
-        /* Footer Button - Professional Gradient */
+        /* Footer Button */
         .footer { padding: 40px; width: 100%; display: flex; justify-content: center; }
         .red-btn { 
             width: 90px; height: 90px; background: linear-gradient(145deg, #FF5252, #D32F2F); 
@@ -113,9 +126,30 @@
             position: fixed; font-size: 35px; z-index: 1000; pointer-events: none;
             transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+
+        /* Professional Success Notification */
+        #notification {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; border: 6px solid #FF8C00; border-radius: 35px;
+            padding: 25px 20px; text-align: center; color: #E67E22;
+            z-index: 5000; display: none; box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+            width: 280px; line-height: 1.4; animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #notification h1 { font-size: 38px; margin-bottom: 5px; color: #FF8C00; }
+        #notification p { font-size: 24px; color: #5D4037; }
+
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
     </style>
 </head>
 <body>
+
+    <div id="notification">
+        <h1 id="notif-title">ماشاءاللہ</h1>
+        <p id="notif-sub">بہت خوب!</p>
+    </div>
 
     <div id="start-overlay">
         <div class="start-modal">
@@ -130,6 +164,12 @@
             <div style="color: #5D4037; font-weight: bold; font-size: 22px;" id="mode-text">سیکھیں</div>
         </div>
         <div class="bar-bg"><div class="bar-fill" id="pb"></div></div>
+        <div class="made-with">Made with- AASPASS</div>
+        
+        <div id="timer-container">
+            <div id="timer-text">10.0s</div>
+            <div class="timer-bar"><div id="timer-fill"></div></div>
+        </div>
     </div>
 
     <div class="stage">
@@ -143,28 +183,58 @@
 
 <script>
     const letters = ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ك', 'ل', 'م', 'ن', 'و', 'ه', 'ء', 'ي'];
-    // آپ کی تصاویر کے مطابق آڈیو فائلز کے نام
     const letterNames = ['alif', 'ba', 'taa', 'tha', 'jeem', 'haa', 'khaa', 'dal', 'dhal', 'raa', 'jaa', 'seen', 'sheen', 'saad', 'dhaad', 'toa', 'dhaa', 'ain', 'ghain', 'faa', 'qaaf', 'kaaf', 'laam', 'meem', 'noon', 'waw', 'ha', 'hamza', 'yaa'];
     
     let idx = 0;
     let score = 0; 
     let audio = new Audio();
+    
+    let groupProgress = 0; 
+    let randomMissionQueue = [];
+    let timerInterval = null;
+    let reminderInterval = null;
+    let autoNextTimeout = null;
+    let voiceTimeouts = []; 
+    let timeLeft = 10;
+    let lastActivityTime = Date.now();
 
     function initApp() {
         document.getElementById('start-overlay').style.display = 'none';
-        playVoice();
+        resetToLearn();
     }
 
-    function playVoice() {
+    function speakPraise(text) {
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel(); // Clear previous queue
+            const msg = new SpeechSynthesisUtterance();
+            msg.text = text;
+            msg.lang = 'ur-PK'; 
+            
+            // Try to find a male voice
+            const voices = window.speechSynthesis.getVoices();
+            const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('Imran') || v.name.includes('Rizwan'));
+            if(maleVoice) msg.voice = maleVoice;
+            
+            msg.rate = 1.0;
+            msg.pitch = 1.0;
+            window.speechSynthesis.speak(msg);
+        }
+    }
+
+    function playVoice(customIdx = null) {
         audio.pause();
         audio.currentTime = 0;
+        voiceTimeouts.forEach(t => clearTimeout(t));
+        voiceTimeouts = [];
 
-        let fileNum = (idx + 1).toString().padStart(3, '0');
-        let name = letterNames[idx];
+        lastActivityTime = Date.now();
         
-        // تصاویر کے مطابق پاتھ سیٹ کرنا
+        let targetIdx = (customIdx !== null) ? customIdx : idx;
+        let fileNum = (targetIdx + 1).toString().padStart(3, '0');
+        let name = letterNames[targetIdx];
+        
         if (name === 'ba') {
-            audio.src = "ba.mp3"; // تصویر میں 'ba.mp3' الگ ہے
+            audio.src = "ba.mp3";
         } else {
             audio.src = fileNum + "-" + name + ".mp3";
         }
@@ -200,19 +270,65 @@
     }
 
     function startQuiz() {
+        clearTimeout(autoNextTimeout);
+        voiceTimeouts.forEach(t => clearTimeout(t));
         document.getElementById('learn-view').style.display = 'none';
         document.getElementById('bottom-bar').style.display = 'none';
         document.getElementById('test-view').style.display = 'grid';
-        document.getElementById('mode-text').innerText = "تلاش کریں";
         
+        if (groupProgress >= 4) {
+            document.getElementById('mode-text').innerText = groupProgress === 5 ? "ٹائمر چیلنج" : "مکس مشن";
+            if(groupProgress === 5) startTimer();
+            playVoice(randomMissionQueue[0]);
+        } else {
+            document.getElementById('mode-text').innerText = "تلاش کریں";
+            playVoice();
+        }
         loadQuiz();
-        playVoice();
+        startReminder();
+    }
+
+    function startReminder() {
+        clearInterval(reminderInterval);
+        reminderInterval = setInterval(() => {
+            if (Date.now() - lastActivityTime > 3000) {
+                let currentCorrectIdx = (groupProgress >= 4) ? randomMissionQueue[0] : idx;
+                playVoice(currentCorrectIdx);
+            }
+        }, 1000);
+    }
+
+    function stopReminder() {
+        clearInterval(reminderInterval);
+    }
+
+    function startTimer() {
+        clearInterval(timerInterval);
+        document.getElementById('timer-container').style.display = 'block';
+        timeLeft = 10.0;
+        timerInterval = setInterval(() => {
+            timeLeft -= 0.1;
+            document.getElementById('timer-text').innerText = timeLeft.toFixed(1) + "s";
+            document.getElementById('timer-fill').style.width = (timeLeft * 10) + "%";
+            
+            if(timeLeft < 3 && timeLeft > 0) {
+                 new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3').play();
+            }
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                failGroup();
+            }
+        }, 100);
     }
 
     function loadQuiz() {
         const grid = document.getElementById('test-view');
         grid.innerHTML = "";
-        let options = [letters[idx]];
+        
+        let correctIdx = (groupProgress >= 4) ? randomMissionQueue[0] : idx;
+        let options = [letters[correctIdx]];
+        
         while(options.length < 4) {
             let r = letters[Math.floor(Math.random() * letters.length)];
             if(!options.includes(r)) options.push(r);
@@ -224,33 +340,153 @@
             card.className = 'card';
             card.innerText = opt;
             card.onclick = (e) => {
-                if(opt === letters[idx]) {
-                    card.style.background = "#4CAF50";
+                lastActivityTime = Date.now();
+                if(opt === letters[correctIdx]) {
+                    stopReminder();
+                    card.style.background = "var(--success)";
                     card.style.color = "white";
                     card.style.transform = "scale(1.1)";
                     coinEffect(e.clientX, e.clientY);
                     confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-                    setTimeout(nextStep, 1300);
+                    setTimeout(nextStep, 1000);
                 } else {
-                    card.classList.add('shake');
-                    card.style.borderColor = "#FF5252";
-                    new Audio('https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3').play();
-                    setTimeout(() => {
-                        card.classList.remove('shake');
-                        card.style.borderColor = "#eee";
-                    }, 500);
+                    failGroup();
                 }
             };
             grid.appendChild(card);
         });
     }
 
+    function failGroup() {
+        clearInterval(timerInterval);
+        stopReminder();
+        clearTimeout(autoNextTimeout);
+        new Audio('https://assets.mixkit.co/active_storage/sfx/251/251-preview.mp3').play();
+        
+        let currentGroupStart = Math.floor(idx / 4) * 4;
+        idx = currentGroupStart;
+        groupProgress = 0;
+        
+        document.getElementById('timer-container').style.display = 'none';
+        alert("غلط جواب! گروپ دوبارہ شروع ہو رہا ہے۔");
+        resetToLearn();
+    }
+
     function nextStep() {
-        idx++;
-        if(idx >= letters.length) idx = 0;
-        
+        if (groupProgress < 3) {
+            groupProgress++;
+            idx++;
+            resetToLearn();
+        } else if (groupProgress === 3) {
+            groupProgress = 4;
+            setupQueue();
+            startQuiz();
+        } else if (groupProgress === 4) {
+            randomMissionQueue.shift();
+            if (randomMissionQueue.length > 0) {
+                startQuiz();
+            } else {
+                groupProgress = 5;
+                setupQueue();
+                startQuiz();
+            }
+        } else if (groupProgress === 5) {
+            randomMissionQueue.shift();
+            if (randomMissionQueue.length > 0) {
+                startQuiz();
+            } else {
+                clearInterval(timerInterval);
+                stopReminder();
+                document.getElementById('timer-container').style.display = 'none';
+                
+                if (idx === letters.length - 1) {
+                    heavyCelebration();
+                } else {
+                    groupCelebration();
+                }
+            }
+        }
         updateProgress();
+    }
+
+    function groupCelebration() {
+        const notif = document.getElementById('notification');
+        const title = document.getElementById('notif-title');
+        const sub = document.getElementById('notif-sub');
         
+        title.innerText = "ماشاءاللہ";
+        sub.innerText = "شاباش بیٹا!";
+        notif.style.display = 'block';
+        
+        // Fireworks sound
+        new Audio('https://assets.mixkit.co/active_storage/sfx/2012/2012-preview.mp3').play();
+        
+        // Male Voice Immediately
+        speakPraise("Mashallah, shabash beta!");
+        
+        // Heavy fireworks effect
+        var duration = 3 * 1000;
+        var end = Date.now() + duration;
+
+        (function frame() {
+          confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 } });
+          confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 } });
+          if (Date.now() < end) { requestAnimationFrame(frame); }
+        }());
+        
+        setTimeout(() => {
+            notif.style.display = 'none';
+            groupProgress = 0;
+            idx++;
+            if(idx >= letters.length) idx = 0;
+            resetToLearn();
+        }, 3500);
+    }
+
+    function heavyCelebration() {
+        const notif = document.getElementById('notification');
+        const title = document.getElementById('notif-title');
+        const sub = document.getElementById('notif-sub');
+
+        title.innerText = "🏆 کمال کر دیا";
+        sub.innerText = "ماشاءاللہ! پورا قاعدہ مکمل!";
+        notif.style.display = 'block';
+        
+        speakPraise("Mashallah! Aap ne pura qaida mukammal kar liya. Bohat khoob!");
+
+        let duration = 8 * 1000;
+        let animationEnd = Date.now() + duration;
+        let defaults = { startVelocity: 35, spread: 360, ticks: 80, zIndex: 6000 };
+
+        function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+
+        let interval = setInterval(function() {
+            let timeLeft = animationEnd - Date.now();
+            if (timeLeft <= 0) return clearInterval(interval);
+            let particleCount = 70 * (timeLeft / duration);
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+            confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+        }, 200);
+
+        setTimeout(() => {
+            notif.style.display = 'none';
+            idx = 0;
+            groupProgress = 0;
+            resetToLearn();
+        }, 9000);
+    }
+
+    function setupQueue() {
+        let groupStart = Math.floor(idx / 4) * 4;
+        randomMissionQueue = [groupStart, groupStart + 1, groupStart + 2, groupStart + 3];
+        randomMissionQueue.sort(() => Math.random() - 0.5);
+    }
+
+    function resetToLearn() {
+        clearTimeout(autoNextTimeout);
+        voiceTimeouts.forEach(t => clearTimeout(t));
+        voiceTimeouts = [];
+
         document.getElementById('main-letter').innerText = letters[idx];
         document.getElementById('learn-view').style.display = 'block';
         document.getElementById('bottom-bar').style.display = 'flex';
@@ -258,6 +494,10 @@
         document.getElementById('mode-text').innerText = "سیکھیں";
         
         playVoice();
+        voiceTimeouts.push(setTimeout(playVoice, 2000));
+        voiceTimeouts.push(setTimeout(playVoice, 4000));
+        
+        autoNextTimeout = setTimeout(startQuiz, 6500);
     }
 
     function updateProgress() {
@@ -268,6 +508,8 @@
     window.onload = () => {
         updateProgress();
         document.getElementById('coin-count').innerText = score;
+        // Pre-load voices
+        window.speechSynthesis.getVoices();
     };
 </script>
 </body>
